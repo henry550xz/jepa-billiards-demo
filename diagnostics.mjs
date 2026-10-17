@@ -6,40 +6,40 @@ const fmt = x => x.toFixed(3);
 export function mountDiagnostics(data, metrics) {
   const root = document.getElementById('diagnostics');
   root.innerHTML = `
-    <p class="eyebrow">WHY WE NEED A LEARNING PILOT</p>
-    <h2>Where the current models break</h2>
-    <p>Actual saved results · 1,000 updates per method · same RGB histories. These failures do not establish a winner or identify their cause.</p>
+    <p class="eyebrow">REPRESENTATION & PREDICTION</p>
+    <h2>What the models recover</h2>
+    <p>Preliminary comparison · 1,000 updates per method · identical RGB histories. We examine visual prediction, physical-state recovery and performance around interactions. These early results do not establish a ranking of objectives.</p>
     <div class="controls">
       <label>Inspect model <select id="diag-method">${methods.map(m => `<option value="${m}">${titles[m]}</option>`).join('')}</select></label>
       <label>Forecast horizon <select id="diag-horizon">${[1,2,4,8,16,32].map(h => `<option value="${h}" ${h===8?'selected':''}>H${h} · ${(h*data.dt).toFixed(2)} s</option>`).join('')}</select></label>
       <label>Projection <select id="diag-camera"><option value="xy">XY</option><option value="xz">XZ</option><option value="yz">YZ</option></select></label>
     </div>
     <div class="diag-grid">
-      <article class="diag-card"><h3>1. Does the trajectory follow the balls?</h3>
+      <article class="diag-card"><h3>1. Trajectory correspondence</h3>
         <p>One held-out episode. Solid colored paths / filled balls: truth. Dashed paths / rings: predicted states from a supervised probe. Numbers identify balls.</p>
         <div id="diag-trajectory"></div><p id="diag-trajectory-note"></p>
       </article>
-      <article class="diag-card"><h3>2. Can we read physical state from the features?</h3>
+      <article class="diag-card"><h3>2. Physical-state recovery</h3>
         <p>Position RMSE across held-out episodes; lower is better. The same probe reads either predicted features or features encoded from actual future images.</p>
         <div id="diag-errors"></div>
         <p id="diag-interpretation"></p>
         <p class="note">Large errors with actual images implicate representation and/or probe limitations. A large rollout gap adds predictor/readout incompatibility. This comparison does not isolate the cause.</p>
       </article>
-      <article class="diag-card"><h3>3. Pixel loses the visible objects</h3>
+      <article class="diag-card"><h3>3. Visual prediction and object detail</h3>
         <p>Actual saved Pixel output at the selected horizon, regardless of the model selected above. Top: truth. Bottom: predicted RGB. Each row contains XY / XZ / YZ views.</p>
         <img id="diag-rgb" alt="Top row: ground truth balls in three views. Bottom row: Pixel RGB forecast." />
-        <p>The prediction is largely uniform while the true image contains balls. Low image loss alone does not demonstrate learned motion.</p>
-        <p class="note">The screening report also records near-constant Pixel features. Undertraining, optimization, background-dominated loss and readout limitations remain unresolved explanations.</p>
+        <p>At this training budget, Pixel predictions are largely uniform and do not recover the visible balls. Foreground-sensitive evaluation is therefore important alongside aggregate image loss.</p>
+        <p class="note">Pixel features also show little variation across held-out images. Further training and readout diagnostics are needed to distinguish optimization, representation and decoder effects.</p>
       </article>
-      <article class="diag-card"><h3>4. Evaluation has blind spots</h3>
-        <p>Can an estimated initial state even start the exact simulator?</p><div id="diag-validity"></div>
+      <article class="diag-card"><h3>4. State validity and event coverage</h3>
+        <p>Fraction of estimated initial states satisfying the exact simulator’s constraints.</p><div id="diag-validity"></div>
         <p class="note">State-supervised probe → exact physics control. Rejected states violate simulator constraints. Errors on different valid subsets cannot fairly rank methods.</p>
         <h4>Collision evidence at this horizon</h4><div id="diag-events"></div>
         <p class="note">Counts cover events anywhere from the forecast start to the target. Wall and ball groups may overlap; these are not disjoint bins. Zero means no evidence, not zero error.</p>
       </article>
     </div>
-    <p class="diag-takeaway"><strong>Next question:</strong> Can each method learn useful dynamics on one fixed setup, and can our readout reliably detect it? These charts cannot yet distinguish insufficient training from a limitation of the objective.</p>
-    <details><summary>Evidence and scope</summary><p>Run: billiards-3d-screen-791-v1. Source: <code>${data.source_sha}</code>. Trajectory: ${data.episode}. Charts use <a href="results/metrics.json">saved metrics</a> and <a href="results/playback.json">saved playback</a>. This section always shows the recorded screening, even when the sandbox below is edited. No live inference or new training is performed.</p></details>`;
+    <p class="diag-takeaway"><strong>Research direction:</strong> Establish learning and state-recovery behavior under matched training budgets, then measure sensitivity to scene complexity, appearance and model depth. The current results motivate these controls; they do not isolate an objective-level limitation.</p>
+    <details><summary>Data and evaluation protocol</summary><p>Run: billiards-3d-screen-791-v1. Source: <code>${data.source_sha}</code>. Trajectory: ${data.episode}. Charts use <a href="results/metrics.json">saved metrics</a> and <a href="results/playback.json">saved playback</a>. These analyses use fixed recorded results and remain unchanged when the interactive sandbox is edited. The demo does not run live learned-model inference.</p></details>`;
 
   function update() {
     const method = document.getElementById('diag-method').value;
@@ -73,7 +73,7 @@ export function mountDiagnostics(data, metrics) {
       return `<div class="diag-error-group ${m===method?'selected':''}"><strong>${titles[m]}</strong>${[['predicted','Predicted features'],['true_future_probe','Actual future features']].map(([k,label])=>`<div class="diag-bar-label">${label}<strong>${fmt(v[k].position_rmse)}</strong></div><div class="diag-track"><span class="${k}" style="width:${width(v[k].position_rmse)}%"></span></div>`).join('')}</div>`;
     }).join('');
     const v=metrics.methods[method].horizons[h];
-    document.getElementById('diag-interpretation').textContent = `${titles[method]}: rollout error is ${(v.predicted.position_rmse/v.true_future_probe.position_rmse).toFixed(1)}× the actual-future probe error at H${h}. ${method==='pixel'?'The enormous coordinates are failed readouts, not physically plausible forecasts.':'Similar errors in both paths do not establish good dynamics: the actual-future readout is already weak.'}`;
+    document.getElementById('diag-interpretation').textContent = `${titles[method]}: rollout error is ${(v.predicted.position_rmse/v.true_future_probe.position_rmse).toFixed(1)}× the actual-future probe error at H${h}. ${method==='pixel'?'The predicted-feature readout produces coordinates far outside the physical domain at this training budget.':'The similar errors in both paths indicate that state recovery from actual-image features also limits this comparison.'}`;
     document.getElementById('diag-rgb').src=`results/pixel-h${h}.png`;
     document.getElementById('diag-validity').innerHTML=methods.map(m=>{
       const r=metrics.methods[m].supervised_image_to_state_to_physics;

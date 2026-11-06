@@ -3,3 +3,5 @@
 @media(max-width:540px){.cap-chart{overflow-x:auto}.cap-chart svg{min-width:480px}}
 
 .cap-sweep{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.cap-sweep .chart-card{min-width:0;margin:0}.cap-sweep h3{font-size:19px}.cap-sweep .caption{font-size:12px}@media(max-width:900px){.cap-sweep{grid-template-columns:1fr}}
+
+.cap-demo main{padding-top:28px}.cap-demo .chapter-section:first-of-type{padding-top:0;margin-top:0;border-top:0}.cap-demo h1{font:650 clamp(26px,3.2vw,36px)/1.2 system-ui,sans-serif;letter-spacing:-.025em;margin-bottom:12px}.cap-demo h2{font:650 clamp(23px,2.5vw,29px)/1.25 system-ui,sans-serif;letter-spacing:-.02em;margin-bottom:14px}.cap-demo .cap-selectors{margin-top:22px}.cap-demo .cap-input-details{margin-bottom:0}.cap-demo .cap-input-details .cap-input{margin-top:18px}.cap-demo .cap-demo-source{margin-top:30px}.cap-demo .cap-input-details a{font-size:12px}

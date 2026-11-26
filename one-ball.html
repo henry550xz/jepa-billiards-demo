@@ -19,7 +19,7 @@ try{
   const panel=document.createElement('article');panel.innerHTML='<h3>'+label+'</h3><svg viewBox="0 0 100 100" role="img" aria-label="'+label+' position and trail"><polyline fill="none" stroke="#248075" stroke-width="1"/><circle r="7" fill="#318b82" fill-opacity=".55" stroke="#135e56" stroke-width="1"/></svg>';panel.id=key;get('panels').append(panel);
  }
  for(const key of ['jepa','state_control']){
-  const row=get('scores').insertRow();row.insertCell().textContent=names[key];for(const h of [1,4,8,16,32])row.insertCell().textContent=data.scores[key][h].toFixed(3);
+  const row=get('scores').insertRow();row.insertCell().textContent=names[key];for(const h of [1,4,8,16,32])row.insertCell().textContent=data.scores[key][h].toFixed(4);
  }
  function draw(){
   const h=Number(get('step').value),ep=data.episodes[Number(get('episode').value)];

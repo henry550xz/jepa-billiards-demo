@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>One-ball 2D rollout</title>
+<style>
+:root{font:16px/1.5 system-ui,sans-serif;color:#153634;background:#fafbf8}main{max-width:1000px;margin:2rem auto;padding:0 1rem}h1,h2,h3{line-height:1.2}h1{font-size:2rem}h3{font-size:1rem}section,nav{margin:1.5rem 0}.panels{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}svg{width:100%;display:block;background:#e9f1ef;border:1px solid #688b85}button,select,input{font:inherit}button,select{padding:.3rem .6rem}nav{display:flex;gap:1rem;flex-wrap:wrap;align-items:center}table{border-collapse:collapse}td,th{padding:.4rem .7rem;text-align:right;border-bottom:1px solid #c1d1cd}td:first-child,th:first-child{text-align:left}a{color:#136c63}@media(max-width:600px){.panels{gap:.4rem}.panels h3{min-height:2.4em}td,th{padding:.25rem;font-size:.85rem}}
+</style><main><a href="capacity.html">Two-ball 3D demo</a><h1>One-ball 2D rollout</h1>
+<p>Both predictors start from the same position and velocity. The JEPA encodes that state into four learned coordinates. A linear readout converts its forecast back to position.</p>
+<nav><label>Validation episode <select id="episode"></select></label><button id="play">Play</button><label>Step <input type="range" min="0" max="32" value="0" id="step"></label><output id="time"></output></nav>
+<div class="panels" id="panels"></div><p id="events"></p>
+<section><h2>Position RMSE by forecast step</h2><p>256 validation episodes · one training seed · lower is better</p><table><thead><tr><th>Predictor</th><th>1</th><th>4</th><th>8</th><th>16</th><th>32</th></tr></thead><tbody id="scores"></tbody></table></section>
+<p id="error" role="alert"></p></main>
+<script type="module">
+const get=id=>document.getElementById(id);
+const names={truth:'Ground truth',jepa:'4D JEPA',state_control:'Direct-state MLP'};
+try{
+ const response=await fetch('results/one-ball/playback.json');if(!response.ok)throw Error('Playback data unavailable');
+ const data=await response.json();let timer;
+ for(const ep of data.episodes)get('episode').add(new Option('#'+ep.number+(ep.bounces.length?' · wall bounce':' · free flight'),get('episode').length));
+ for(const [key,label] of Object.entries(names)){
+  const panel=document.createElement('article');panel.innerHTML='<h3>'+label+'</h3><svg viewBox="0 0 100 100" role="img" aria-label="'+label+' position and trail"><polyline fill="none" stroke="#248075" stroke-width="1"/><circle r="7" fill="#318b82" fill-opacity=".55" stroke="#135e56" stroke-width="1"/></svg>';panel.id=key;get('panels').append(panel);
+ }
+ for(const key of ['jepa','state_control']){
+  const row=get('scores').insertRow();row.insertCell().textContent=names[key];for(const h of [1,4,8,16,32])row.insertCell().textContent=data.scores[key][h].toFixed(3);
+ }
+ function draw(){
+  const h=Number(get('step').value),ep=data.episodes[Number(get('episode').value)];
+  for(const key of Object.keys(names)){
+   const pts=ep.paths[key].slice(0,h+1).map(([x,y])=>[100*x,100*(1-y)]);const [x,y]=pts[h];
+   get(key).querySelector('polyline').setAttribute('points',pts.map(p=>p.join(',')).join(' '));
+   const ball=get(key).querySelector('circle');ball.setAttribute('cx',x);ball.setAttribute('cy',y);
+  }
+  get('time').textContent=h+'/32 · '+(h*.04).toFixed(2)+' s';
+  get('events').textContent=ep.bounces.length?'Ground-truth wall bounce at step '+ep.bounces.join(', ')+'.':'Ground truth stays in free flight for all 32 steps.';
+ }
+ function stop(){clearInterval(timer);timer=undefined;get('play').textContent='Play';}
+ get('play').onclick=()=>{if(timer){stop();return;}if(+get('step').value===32)get('step').value=0;draw();get('play').textContent='Pause';timer=setInterval(()=>{get('step').value=+get('step').value+1;draw();if(+get('step').value===32)stop();},120);};
+ get('step').oninput=()=>{stop();draw();};get('episode').onchange=()=>{stop();get('step').value=0;draw();};draw();
+}catch(e){get('error').textContent=e.message;}
+</script></html>
